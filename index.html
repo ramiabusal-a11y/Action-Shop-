@@ -1688,7 +1688,117 @@
                 case 'admin':
                     return isAdminAuthenticated ? e(AdminPanel) : e(AdminLoginScreen);
                 case 'shop':
-                    return e(ShopView);
+   <!-- ✨ Cloudinary + Supabase Integration (Action Shop Unified Code) -->
+<script type="module">
+
+// ============= 🧩 1. خانات إعداد المفاتيح =============
+let config = {
+  cloudName: "",
+  uploadPreset: "",
+  supabaseUrl: "",
+  supabaseKey: ""
+};
+
+// تحميل القيم المخزنة مسبقاً
+if (localStorage.getItem("appKeys")) {
+  config = JSON.parse(localStorage.getItem("appKeys"));
+}
+
+// ============= ⚙️ 2. واجهة الإعدادات الداخلية =============
+const settingsPanel = document.createElement("div");
+settingsPanel.innerHTML = `
+  <div style="position:fixed;bottom:10px;right:10px;z-index:9999;background:#fff;border-radius:10px;padding:15px;box-shadow:0 0 10px rgba(0,0,0,0.2);width:300px;">
+    <h3 style="text-align:center;margin-bottom:10px;">⚙️ إعدادات التطبيق</h3>
+    <label>Cloudinary Cloud Name:</label>
+    <input id="cloudName" value="${config.cloudName}" placeholder="مثلاً: db06mnv5v" style="width:100%;margin-bottom:5px;border:1px solid #ccc;padding:5px;border-radius:6px;">
+    <label>Upload Preset:</label>
+    <input id="uploadPreset" value="${config.uploadPreset}" placeholder="auto_upload" style="width:100%;margin-bottom:5px;border:1px solid #ccc;padding:5px;border-radius:6px;">
+    <label>Supabase URL:</label>
+    <input id="supabaseUrl" value="${config.supabaseUrl}" placeholder="https://xxxx.supabase.co" style="width:100%;margin-bottom:5px;border:1px solid #ccc;padding:5px;border-radius:6px;">
+    <label>Supabase Key:</label>
+    <input id="supabaseKey" value="${config.supabaseKey}" placeholder="public-anon-key" style="width:100%;margin-bottom:5px;border:1px solid #ccc;padding:5px;border-radius:6px;">
+    
+    <button id="saveKeys" style="background:#2563eb;color:white;width:100%;padding:8px;border:none;border-radius:6px;margin-top:5px;">💾 حفظ الإعدادات</button>
+    <hr>
+    <input type="file" id="uploadFile" accept="image/*,video/*" style="display:none;">
+    <button id="uploadBtn" style="background:#16a34a;color:white;width:100%;padding:8px;border:none;border-radius:6px;">⬆️ رفع إلى Cloudinary</button>
+  </div>
+`;
+document.body.appendChild(settingsPanel);
+
+// ============= 💾 3. حفظ المفاتيح محلياً =============
+document.getElementById("saveKeys").onclick = () => {
+  config = {
+    cloudName: document.getElementById("cloudName").value.trim(),
+    uploadPreset: document.getElementById("uploadPreset").value.trim(),
+    supabaseUrl: document.getElementById("supabaseUrl").value.trim(),
+    supabaseKey: document.getElementById("supabaseKey").value.trim()
+  };
+  localStorage.setItem("appKeys", JSON.stringify(config));
+  alert("✅ تم حفظ الإعدادات بنجاح!");
+};
+
+// ============= ☁️ 4. رفع الصور والفيديوهات إلى Cloudinary =============
+async function uploadToCloudinary(file) {
+  if (!config.cloudName || !config.uploadPreset) {
+    alert("⚠️ الرجاء إدخال إعدادات Cloudinary أولاً!");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("upload_preset", config.uploadPreset);
+
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${config.cloudName}/upload`, {
+    method: "POST",
+    body: formData
+  });
+
+  const data = await res.json();
+  console.log("تم رفع الملف:", data.secure_url);
+  alert("✅ تم رفع الملف بنجاح!");
+  return data.secure_url;
+}
+
+// ============= 🧠 5. ربط Supabase لتخزين البيانات والنصوص =============
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+
+function getSupabaseClient() {
+  if (!config.supabaseUrl || !config.supabaseKey) {
+    alert("⚠️ الرجاء إدخال إعدادات Supabase أولاً!");
+    return null;
+  }
+  return createClient(config.supabaseUrl, config.supabaseKey);
+}
+
+// مثال: حفظ بيانات منتج جديد
+async function saveProductData(name, price, imageUrl) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+
+  const { data, error } = await supabase.from("products").insert([{ name, price, imageUrl }]);
+  if (error) {
+    console.error("❌ خطأ أثناء الحفظ:", error);
+  } else {
+    console.log("✅ تم حفظ المنتج بنجاح:", data);
+  }
+}
+
+// ============= 📤 6. تشغيل زر الرفع =============
+document.getElementById("uploadBtn").onclick = () => {
+  document.getElementById("uploadFile").click();
+};
+
+document.getElementById("uploadFile").onchange = async (e) => {
+  const file = e.target.files[0];
+  const url = await uploadToCloudinary(file);
+  if (url) {
+    // مثال: حفظ الصورة في Supabase مع منتج تجريبي
+    await saveProductData("منتج تجريبي", "20", url);
+  }
+};
+
+</script>                 return e(ShopView);
                 case 'home':
                 default:
                     return e(HomeScreen);
@@ -1705,6 +1815,7 @@
         
         root.render(e(AppProvider, null, e(App)));
 
-    </script>
+ </script>
+
 </body>
 </html>
